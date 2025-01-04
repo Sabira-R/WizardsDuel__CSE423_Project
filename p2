@@ -1,0 +1,1122 @@
+import math
+from OpenGL.GL import *
+from OpenGL.GLUT import *
+from OpenGL.GLU import *
+import random
+
+W_Width, W_Height = 500, 1000
+wizard_x = 250
+house_color = [0,1,1]  # fixed at red
+tem_house_color = house_color
+wizard_y = 45
+starting_wizard_y = -30
+wizard_speed = 15
+wizard_visibility = False
+#### spell = [ x, y, isLooping, isVisible ] ######
+spell_1 = [[wizard_x, wizard_y, True, True], [wizard_x, wizard_y, False, True],
+            [wizard_x, wizard_y, False, True], [wizard_x, wizard_y, False, True],
+            [wizard_x, wizard_y, False, True], [wizard_x, wizard_y, False, True],
+            [wizard_x, wizard_y, False, True], [wizard_x, wizard_y, False, True],
+            [wizard_x, wizard_y, False, True], [wizard_x, wizard_y, False, True],
+            [wizard_x, wizard_y, False, True], [wizard_x, wizard_y, False, True],
+            [wizard_x, wizard_y, False, True]]
+spell_2 = [[wizard_x - 10, wizard_y, True, True], [wizard_x - 10, wizard_y, False, True],
+            [wizard_x - 10, wizard_y, False, True], [wizard_x - 10, wizard_y, False, True],
+            [wizard_x - 10, wizard_y, False, True], [wizard_x - 10, wizard_y, False, True],
+            [wizard_x - 10, wizard_y, False, True], [wizard_x - 10, wizard_y, False, True],
+            [wizard_x - 10, wizard_y, False, True], [wizard_x - 10, wizard_y, False, True],
+            [wizard_x - 10, wizard_y, False, True], [wizard_x - 10, wizard_y, False, True],
+            [wizard_x - 10, wizard_y, False, True]]
+spell_3 = [[wizard_x + 10, wizard_y, True, True], [wizard_x + 10, wizard_y, False, True],
+            [wizard_x + 10, wizard_y, False, True], [wizard_x + 10, wizard_y, False, True],
+            [wizard_x + 10, wizard_y, False, True], [wizard_x + 10, wizard_y, False, True],
+            [wizard_x + 10, wizard_y, False, True], [wizard_x + 10, wizard_y, False, True],
+            [wizard_x + 10, wizard_y, False, True], [wizard_x + 10, wizard_y, False, True],
+            [wizard_x + 10, wizard_y, False, True], [wizard_x + 10, wizard_y, False, True],
+            [wizard_x + 10, wizard_y, False, True]]
+
+spell_speed = 9
+spell_r = 3
+spell_num = 1
+score = 0
+lives = 3
+isPlay = False
+gamestartStatus = "Game Started"
+gameover = False
+gameStart = False
+exitGame = False
+shootable = True
+isWin = False
+
+### dementor = [x,y,speed,hp,isVisible,color, direction] ########
+dementor_1 = [40, 590, 5, 100, False, [0.7, 0.3, 0], "right"]
+dementor_2 = [460, 590, 5, 100, False, [1, 0.1, 0.8], "left"]
+
+##### alien bullet = [x,y,speed,isVisible] #########
+curse_a1 = [dementor_1[0], dementor_1[1] - 10, 5, False]
+curse_a2 = [dementor_2[0], dementor_2[1] - 10, 10, False]
+curse2_a1 = [dementor_1[0], dementor_1[1] - 10, 15, False]
+curse2_a2 = [dementor_2[0], dementor_2[1] - 10, 20, False]
+curse3_a1 = [dementor_1[0], dementor_1[1] - 10, 25, False]
+curse3_a2 = [dementor_2[0], dementor_2[1] - 10, 30, False]
+
+
+###########################    Mid Point Line Drawing Algorithm Functions   #############################################
+def originalZone(z, x, y, s):
+    if z == 0:
+        draw_points(x, y, s)
+    elif z == 1:
+        draw_points(y, x, s)
+    elif z == 2:
+        draw_points(-y, x, s)
+    elif z == 3:
+        draw_points(-x, y, s)
+    elif z == 4:
+        draw_points(-x, -y, s)
+    elif z == 5:
+        draw_points(-y, -x, s)
+    elif z == 6:
+        draw_points(y, -x, s)
+    elif z == 7:
+        draw_points(x, -y, s)
+
+
+def draw_Line(x0, y0, x1, y1, c=[1, 1, 1]):
+    zone = findZone(x0, y0, x1, y1)
+    x0, y0 = convert_n_to_0(zone, x0, y0)
+    x1, y1 = convert_n_to_0(zone, x1, y1)
+    dx = x1 - x0
+    dy = y1 - y0
+    d0 = 2 * dy - dx
+    de = 2 * dy
+    dne = 2 * (dy - dx)
+    x, y = x0, y0
+
+    while (x < x1):
+        originalZone(zone, x, y, c)
+        if d0 < 0:
+            x += 1
+            d0 += de
+        else:
+            x += 1
+            y += 1
+            d0 += dne
+
+def findZone(x1, y1, x2, y2):
+    dx = x2 - x1
+    dy = y2 - y1
+    if abs(dx) >= abs(dy):
+        if dx >= 0 and dy >= 0:
+            zone = 0
+        elif dx < 0 and dy >= 0:
+            zone = 3
+        elif dx < 0 and dy < 0:
+            zone = 4
+        else:
+            zone = 7
+    else:
+        if dx >= 0 and dy > 0:
+            zone = 1
+        elif dx < 0 and dy > 0:
+            zone = 2
+        elif dx <= 0 and dy < 0:
+            zone = 5
+        else:
+            zone = 6
+    return zone
+
+
+def convert_n_to_0(zone, x, y):
+    if zone == 0:
+        return (x, y)
+    else:
+        if zone == 1:
+            return (y, x)
+        elif zone == 2:
+            return (y, -x)
+        elif zone == 3:
+            return (-x, y)
+        elif zone == 4:
+            return (-x, -y)
+        elif zone == 5:
+            return (-y, -x)
+        elif zone == 6:
+            return (-y, x)
+        else:
+            return (x, -y)
+
+
+###########################    Mid Point Circle Drawing Algorithm Functions   #############################################
+def circlePoints(x, y, x0, y0, color):
+    draw_points(x + x0, y + y0, color)
+    draw_points(y + x0, x + y0, color)
+    draw_points(y + x0, -x + y0, color)
+    draw_points(x + x0, -y + y0, color)
+    draw_points(-x + x0, -y + y0, color)
+    draw_points(-y + x0, -x + y0, color)
+    draw_points(-y + x0, x + y0, color)
+    draw_points(-x + x0, y + y0, color)
+
+
+def midpointLine(radius, x0, y0, color):
+    d = 1 - radius
+    x = 0
+    y = radius
+
+    circlePoints(x, y, x0, y0, color)
+
+    while x < y:
+        # print("y")
+        if d < 0:
+            # Choose East.
+            d = d + 2 * x + 3
+            x += 1
+        else:
+            # Choose South East.
+            d = d + 2 * x - 2 * y + 5
+            x += 1
+            y = y - 1
+
+        circlePoints(x, y, x0, y0, color)
+
+
+def draw_circle(radius, x0, y0, color=[1, 1, 1]):
+    midpointLine(radius, x0, y0, color)  # outer circle
+
+
+def draw_points(x, y, color=[1, 1, 1]):
+    glColor3f(color[0], color[1], color[2])
+    glBegin(GL_POINTS)
+    glVertex2f(x, y)  # jekhane show korbe pixel
+    glEnd()
+
+
+###################### Play, Pause, Exit, Restart and Convert Coordinate Drawing Functions #################################
+def restart_img():
+    draw_Line(30, 700, 80, 700, [0, 1, 0])
+    draw_Line(50, 720, 30, 700, [0, 1, 0])
+    draw_Line(50, 680, 30, 700, [0, 1, 0])
+
+
+def exit_img():
+    draw_Line(470, 680, 430, 720, [1, 0, 0])
+    draw_Line(470, 720, 430, 680, [1, 0, 0])
+
+
+def play_img():
+    draw_Line(130, 680, 130, 720, [0.5, 1, 1])
+    draw_Line(130, 680, 170, 700, [0.5, 1, 1])
+    draw_Line(130, 720, 170, 700, [0.5, 1, 1])  # 001
+
+
+def pause_img():
+    draw_Line(140, 680, 140, 720, [1, 1, 0])
+    draw_Line(160, 680, 160, 720, [1, 1, 0])
+
+def convert_coordinate(x, y):
+    global W_Width, W_Height
+    a = x - (W_Width / 2) + 350 - 101
+    b = (W_Height / 2) - y + 351 - 102
+    return a, b
+
+####################################  All Drawing Functions ################
+def line():
+    draw_Line(0, 650, 500, 650)
+
+def wizard():
+    global wizard_x, wizard_y, house_color
+    color = house_color
+
+    
+    draw_Line(wizard_x - 20, wizard_y, wizard_x + 20, wizard_y, color)  
+    draw_Line(wizard_x - 20, wizard_y, wizard_x, wizard_y + 40, color)  
+    draw_Line(wizard_x + 20, wizard_y, wizard_x, wizard_y + 40, color)  
+
+    
+    count_r = 0
+    while count_r < 20:  
+        draw_circle(count_r, wizard_x, wizard_y - 10, color)  
+        count_r += 1
+
+   
+    draw_Line(wizard_x - 25, wizard_y - 10, wizard_x + 25, wizard_y - 10, color)  
+
+def starting_wizard():
+    global wizard_x, starting_wizard_y, house_color
+    color = house_color
+    if starting_wizard_y < 600:
+        count_b = 0
+        while count_b < 20:
+            draw_Line(wizard_x - 15, starting_wizard_y + 10 - count_b, wizard_x - 35,
+                      starting_wizard_y - 10 - count_b)
+            draw_Line(wizard_x + 15, starting_wizard_y + 10 - count_b, wizard_x + 35,
+                      starting_wizard_y - 10 - count_b)
+          
+            count_b += 1
+        count_s = 0
+        while count_s < 10:
+            draw_Line(wizard_x - 10, starting_wizard_y - 20 - count_s, wizard_x - 20,
+                      starting_wizard_y - 30 - count_s)
+            draw_Line(wizard_x + 10, starting_wizard_y - 20 - count_s, wizard_x + 20,
+                      starting_wizard_y - 30 - count_s)
+            draw_Line(wizard_x + 5, starting_wizard_y + 15 - count_s, wizard_x + 15,
+                      starting_wizard_y + 25 - count_s)
+            draw_Line(wizard_x - 5, starting_wizard_y + 15 - count_s, wizard_x - 15,
+                      starting_wizard_y + 25 - count_s)
+            count_s += 1
+        count_r = 0
+        while count_r < 20:
+            draw_circle(count_r, wizard_x, starting_wizard_y, color)
+            count_r += 1
+        count_rs = 0
+        while count_rs < 11:
+            draw_circle(count_rs, wizard_x, starting_wizard_y - 23, color)
+            count_rs += 1
+
+###################Lightning Bolt spell casting######################
+def spell1():
+    global spell_1, spell_r, house_color, spell_num
+    for i in spell_1:
+        if i[3]:
+            count = 0
+            while count <= spell_r:
+                draw_circle(count, i[0], i[1], house_color)
+                count += 1
+def spell2():
+    global spell_2, spell_r, house_color, spell_num
+    for i in spell_2:
+        if i[3]:
+            count = 0
+            while count <= spell_r:
+                draw_circle(count, i[0], i[1], house_color)
+                count += 1
+
+def spell3():
+    global spell_3, house_color
+    for i in spell_3:
+        if i[3]:  # If spell is visible
+            x, y = i[0], i[1]
+            color = house_color
+
+            # Lightning bolt shape
+            draw_Line(x, y, x + 5, y + 10, color)
+            draw_Line(x + 5, y + 10, x - 5, y + 20, color)
+            draw_Line(x - 5, y + 20, x + 5, y + 30, color)
+            draw_Line(x + 5, y + 30, x - 5, y + 40, color)
+
+def themes():
+    count = 0
+    while count <= 3:
+        # Draw Red Square
+        draw_square(count, 235, 680, [1, 0, 0])  # Red Square button
+        # Draw Green Square
+        draw_square(count, 285, 680, [0, 1, 0])  # Green Square button
+        # Draw Yellow Square
+        draw_square(count, 335, 680, [1, 1, 0])  # Yellow Square button
+        # Draw Blue Square
+        draw_square(count, 385, 680, [0, 0, 1])  # Blue Square button
+        count += 1
+
+# Function to draw a square at specific coordinates with specific color
+def draw_square(count, x, y, color):
+    # Define the size of the square
+    size = 20  # Adjust the size as needed
+    # Drawing logic for the square
+    glBegin(GL_QUADS)
+    glColor3fv(color)
+    glVertex2f(x - size / 2, y - size / 2)  # bottom left corner
+    glVertex2f(x + size / 2, y - size / 2)  # bottom right corner
+    glVertex2f(x + size / 2, y + size / 2)  # top right corner
+    glVertex2f(x - size / 2, y + size / 2)  # top left corner
+    glEnd()
+
+
+def heart():
+    color = [255, 0, 0]  # Red, applied to all hearts
+
+    if lives > 2:
+        # Draw all three hearts in red
+        count = 0  # upper half of the heart
+        while count <= 8:
+            draw_circle(count, 243, 730, color)
+            draw_circle(count, 257, 730, color)
+            count += 1
+        c2 = 0
+        while c2 < 15:  # lower half of the heart
+            draw_Line(235 + c2, 728 - c2, 266 - c2, 728 - c2, color)
+            c2 += 1
+
+    if lives > 1:
+        # Draw the second and third hearts in red (first heart disappears)
+        count = 0
+        while count <= 8:
+            draw_circle(count, 243 + 50, 730, color)
+            draw_circle(count, 257 + 50, 730, color)
+            count += 1
+        c2 = 0
+        while c2 < 15:
+            draw_Line(235 + 50 + c2, 728 - c2, 266 + 50 - c2, 728 - c2, color)
+            c2 += 1
+
+    if lives > 0:
+        # Draw only the third heart in red (first and second hearts disappear)
+        count = 0
+        while count <= 8:
+            draw_circle(count, 243 + 100, 730, color)
+            draw_circle(count, 257 + 100, 730, color)
+            count += 1
+        c2 = 0
+        while c2 < 15:
+            draw_Line(235 + 100 + c2, 728 - c2, 266 + 100 - c2, 728 - c2, color)
+            c2 += 1
+
+def dementor():
+    global dementor_1
+    if dementor_1[4]:  # Check if dementor is visible
+        # Draw the upside-down triangle
+        draw_Line(dementor_1[0] - 20, dementor_1[1] + 20, dementor_1[0] + 20, dementor_1[1] + 20, [1, 1, 1])  # Base
+        draw_Line(dementor_1[0] - 20, dementor_1[1] + 20, dementor_1[0], dementor_1[1], [1, 1, 1])  # Left side
+        draw_Line(dementor_1[0] + 20, dementor_1[1] + 20, dementor_1[0], dementor_1[1], [1, 1, 1])  # Right side
+
+        # Draw the circle in the middle of the triangle
+        draw_circle(10, dementor_1[0], dementor_1[1] + 10, dementor_1[5])  # Use dementor's color
+
+
+
+def dementor2():
+    global dementor_2
+    if dementor_2[4]:  # Check if dementor is visible
+        #glLineWidth(4)  # Set line width to make lines bold
+        # Draw the upside-down triangle
+        draw_Line(dementor_2[0] - 20, dementor_2[1] + 20, dementor_2[0] + 20, dementor_2[1] + 20, [1, 1, 1])  # Base
+        draw_Line(dementor_2[0] - 20, dementor_2[1] + 20, dementor_2[0], dementor_2[1], [1, 1, 1])  # Left side
+        draw_Line(dementor_2[0] + 20, dementor_2[1] + 20, dementor_2[0], dementor_2[1], [1, 1, 1])  # Right side
+
+        # Draw the circle in the middle of the triangle
+        draw_circle(10, dementor_2[0], dementor_2[1] + 10, dementor_2[5])  # Use dementor's color
+
+        #glLineWidth(1)  # Reset line width to default
+
+
+
+
+
+
+def curseOfdementor():
+    def draw_lightning_bolt(start_x, start_y, length, segments, color):
+        """Draws a lightning bolt as a zigzag line."""
+        glColor3f(color[0], color[1], color[2])  # Set color
+        wizard_x , wizard_y= start_x, start_y
+        for _ in range(segments):
+            x_offset = random.randint(-15, 15)  # Random horizontal offset for jagged effect
+            y_offset = -length // segments  # Incremental vertical drop
+            x_next, y_next = wizard_x + x_offset, wizard_y+ y_offset
+            draw_Line(wizard_x, wizard_y, x_next, y_next, color)
+            wizard_x , wizard_y= x_next, y_next
+
+    if curse_a1[3] and dementor_1[3]:
+        draw_lightning_bolt(curse_a1[0], curse_a1[1], 40, 3, [1, 0, 1])  # Purple Lightning Bolt
+    if curse_a2[3] and dementor_2[3]:
+        draw_lightning_bolt(curse_a2[0], curse_a2[1], 40, 3, [1, 0, 1])  # Purple Lightning Bolt
+
+    if spell_num > 2 and not isWin:
+        if curse2_a1[3] and dementor_1[3]:
+            draw_lightning_bolt(curse2_a1[0], curse2_a1[1], 60, 5, [1, 1, 0])  # Yellow Lightning Bolt
+        if curse2_a2[3] and dementor_2[3]:
+            draw_lightning_bolt(curse2_a2[0], curse2_a2[1], 60, 5, [1, 1, 0])  # Yellow Lightning Bolt
+
+    if spell_num > 4 and not isWin:
+        if curse3_a1[3] and dementor_1[3]:
+            draw_lightning_bolt(curse3_a1[0], curse3_a1[1], 80, 7, [0.5, 0.5, 1])  # Blue Lightning Bolt
+        if curse3_a2[3] and dementor_2[3]:
+            draw_lightning_bolt(curse3_a2[0], curse3_a2[1], 80, 7, [0.5, 0.5, 1])  # Blue Lightning Bolt
+
+
+############# Looping ##########################
+def animate():
+    global isPlay, gameStart, curse_a1, tem_house_color, curse2_a1, curse3_a1, curse3_a2, curse2_a2, isWin, spell_2, spell_1, starting_wizard_y, wizard_visibility, gameover, spell_3, exitGame, shootable, bullet_4, bullet_5, gameover, wizard_speed, gameStart, lives, tem_house_color, gamestartStatus, curse_a2, spell_1, spell_speed, wizard_x, wizard_y, house_color, dementor_1, dementor_2, score, spell_num
+    glutPostRedisplay()
+    ################## After Game over Reset all ##################################################
+    if gameover == True:
+        wizard_x = 250
+        house_color = [1, 0, 0]
+        tem_house_color = house_color
+        wizard_y = 45
+        wizard_visibility = False
+        starting_wizard_y = -30
+        wizard_speed = 15
+        spell_1 = [[wizard_x, wizard_y, True, True], [wizard_x, wizard_y, False, True],
+                    [wizard_x, wizard_y, False, True], [wizard_x, wizard_y, False, True],
+                    [wizard_x, wizard_y, False, True], [wizard_x, wizard_y, False, True],
+                    [wizard_x, wizard_y, False, True], [wizard_x, wizard_y, False, True],
+                    [wizard_x, wizard_y, False, True], [wizard_x, wizard_y, False, True],
+                    [wizard_x, wizard_y, False, True], [wizard_x, wizard_y, False, True],
+                    [wizard_x, wizard_y, False, True]]
+        spell_2 = [[wizard_x - 10, wizard_y, True, True], [wizard_x - 10, wizard_y, False, True],
+                    [wizard_x - 10, wizard_y, False, True], [wizard_x - 10, wizard_y, False, True],
+                    [wizard_x - 10, wizard_y, False, True], [wizard_x - 10, wizard_y, False, True],
+                    [wizard_x - 10, wizard_y, False, True], [wizard_x - 10, wizard_y, False, True],
+                    [wizard_x - 10, wizard_y, False, True], [wizard_x - 10, wizard_y, False, True],
+                    [wizard_x - 10, wizard_y, False, True], [wizard_x - 10, wizard_y, False, True],
+                    [wizard_x - 10, wizard_y, False, True]]
+        spell_3 = [[wizard_x + 10, wizard_y, True, True], [wizard_x + 10, wizard_y, False, True],
+                    [wizard_x + 10, wizard_y, False, True], [wizard_x + 10, wizard_y, False, True],
+                    [wizard_x + 10, wizard_y, False, True], [wizard_x + 10, wizard_y, False, True],
+                    [wizard_x + 10, wizard_y, False, True], [wizard_x + 10, wizard_y, False, True],
+                    [wizard_x + 10, wizard_y, False, True], [wizard_x + 10, wizard_y, False, True],
+                    [wizard_x + 10, wizard_y, False, True], [wizard_x + 10, wizard_y, False, True],
+                    [wizard_x + 10, wizard_y, False, True]]
+
+        spell_speed = 9
+        spell_num = 1
+        isPlay = False
+        gameStart = False
+        exitGame = False
+        shootable = True
+        dementor_1 = [40, 590, 5, 100, False, [0.7, 0.3, 0], "right"]
+        dementor_2 = [460, 590, 5, 100, False, [1, 0.1, 0.8], "left"]
+        curse_a1 = [dementor_1[0], dementor_1[1] - 10, 5, False]
+        curse_a2 = [dementor_2[0], dementor_2[1] - 10, 10, False]
+        curse2_a1 = [dementor_1[0], dementor_1[1] - 10, 15, False]
+        curse2_a2 = [dementor_2[0], dementor_2[1] - 10, 20, False]
+        curse3_a1 = [dementor_1[0], dementor_1[1] - 10, 25, False]
+        curse3_a2 = [dementor_2[0], dementor_2[1] - 10, 30, False]
+
+    if gameStart and isPlay:
+        ############ starting Shooter entry and win leave #############################
+        if wizard_visibility == False:
+            if starting_wizard_y < 45:
+                starting_wizard_y += 5
+            if starting_wizard_y == 45:
+                wizard_visibility = True
+        if isWin:
+            c = 0
+            for i in spell_1:
+                if i[1] != wizard_y:
+                    c = 1
+            if c == 0:
+                for i in spell_2:
+                    if i[1] != wizard_y:
+                        c = 1
+            if c == 0:
+                for i in spell_3:
+                    if i[1] != wizard_y:
+                        c = 1
+            if c == 0:
+                for i in bullet_4:
+                    if i[1] != wizard_y:
+                        c = 1
+            if c == 0:
+                for i in bullet_5:
+                    if i[1] != wizard_y:
+                        c = 1
+            if c == 0:
+                wizard_visibility = False
+                starting_wizard_y += 20
+
+    if (gameStart and isPlay) and wizard_visibility:
+        ############# alien destroyed ####################################
+        if dementor_1[3] <= 0:
+            dementor_1[4] = False
+            curse_a1[3] = False
+        if dementor_2[3] <= 0:
+            dementor_2[4] = False
+            curse_a2[3] = False
+        if dementor_1[3] <= 0 and dementor_2[3] <= 0:
+            if isWin == False:
+                isWin = True
+                print(".....................................................")
+                print("You Won!")
+                print("Score:", score)
+        ##### spell number,spell speed, Difficulties change according to score ##############
+        if score > 10 and score < 20:
+            
+            spell_num = 2
+            spell_speed = 10
+            wizard_speed = 18
+            dementor_1[2] = 4
+            dementor_2[2] = 8
+        #print(score,'Level 2')
+        if score > 50:
+            spell_num = 3
+            spell_speed = 15
+            wizard_speed = 20
+            dementor_1[2] = 10
+            dementor_2[2] = 12
+        ########## wizard and dementor color auto change after got shooted ###################
+
+        # dementor 1 hit logic: Temporary color red
+        if dementor_1[5] == [1, 0, 0]:  # Red indicates a hit
+            c = 0
+            while c < 1000:  # Delay for visual indication
+                c += 1
+            dementor_1[5] = [0.7, 0.3, 0]  # Reset to default color (orange/brown)
+
+        # dementor 2 hit logic: Temporary color red
+        if dementor_2[5] == [1, 0, 0]:  # Red indicates a hit
+            c = 0
+            while c < 1000:  # Delay for visual indication
+                c += 1
+            dementor_2[5] = [1, 0.1, 0.8]  # Reset to default color (pink/purple)
+
+        # wizard hit logic: Temporary color white
+        if house_color == [0, 0, 0]:  # White indicates a hit
+            c = 0
+            while c < 1000:  # Delay for visual indication
+                c += 1
+            house_color = tem_house_color  # Reset to the shooter's default color
+
+        #### dementor moving #######################
+        if dementor_1[4]:
+            if dementor_1[6] == "right":
+                dementor_1[0] += dementor_1[2]
+                if dementor_1[0] >= 460:
+                    dementor_1[6] = "left"
+            if dementor_1[6] == "left":
+                dementor_1[0] -= dementor_1[2]
+                if dementor_1[0] <= 40:
+                    dementor_1[6] = "right"
+        if dementor_2[4]:
+            if dementor_2[6] == "right":
+                dementor_2[0] += dementor_2[2]
+                if dementor_2[0] >= 460:
+                    dementor_2[6] = "left"
+            if dementor_2[6] == "left":
+                dementor_2[0] -= dementor_2[2]
+                if dementor_2[0] <= 40:
+                    dementor_2[6] = "right"
+        ######## dementor curse looping #######################
+        if gamestartStatus == "Game Running" and isWin == False:
+            if dementor_1[4]:
+                curse_a1[1] -= curse_a1[2]
+                if curse_a1[1] <= 0:
+                    curse_a1[1] = dementor_1[1] - 10
+                    curse_a1[0] = dementor_1[0]
+                    curse_a1[3] = True
+            if dementor_2[4]:
+                curse_a2[1] -= curse_a2[2]
+                if curse_a2[1] <= 0:
+                    curse_a2[1] = dementor_2[1] - 10
+                    curse_a2[0] = dementor_2[0]
+                    curse_a2[3] = True
+            if spell_num > 2:
+                if dementor_1[4]:
+                    curse2_a1[1] -= curse2_a1[2]
+                    if curse2_a1[1] > 400:
+                        if curse2_a1[0] < wizard_x:
+                            curse2_a1[0] += curse2_a1[2]
+                        if curse2_a1[0] > wizard_x:
+                            curse2_a1[0] -= curse2_a1[2]
+                    if curse2_a1[1] <= 0:
+                        curse2_a1[1] = dementor_1[1] - 10
+                        curse2_a1[0] = dementor_1[0]
+                        curse2_a1[3] = True
+                if dementor_2[4]:
+                    curse2_a2[1] -= curse2_a2[2]
+                    if curse2_a2[1] > 400:
+                        if curse2_a2[0] < wizard_x:
+                            curse2_a2[0] += curse2_a2[2]
+                        if curse2_a2[0] > wizard_x:
+                            curse2_a2[0] -= curse2_a2[2]
+                    if curse2_a2[1] <= 0:
+                        curse2_a2[1] = dementor_2[1] - 10
+                        curse2_a2[0] = dementor_2[0]
+                        curse2_a2[3] = True
+            if spell_num > 4:
+                if dementor_1[4]:
+                    curse3_a1[1] -= curse3_a1[2]
+                    if curse3_a1[1] > 500:
+                        if curse3_a1[0] < wizard_x:
+                            curse3_a1[0] += curse3_a1[2]
+                        if curse3_a1[0] > wizard_x:
+                            curse3_a1[0] -= curse3_a1[2]
+                    if curse3_a1[1] <= 0:
+                        curse3_a1[1] = dementor_1[1] - 10
+                        curse3_a1[0] = dementor_1[0]
+                        curse3_a1[3] = True
+                if dementor_2[4]:
+                    curse3_a2[1] -= curse3_a2[2]
+                    if curse3_a2[1] > 500:
+                        if curse3_a2[0] < wizard_x:
+                            curse3_a2[0] += curse3_a2[2]
+                        if curse3_a2[0] > wizard_x:
+                            curse3_a2[0] -= curse3_a2[2]
+                    if curse3_a2[1] <= 0:
+                        curse3_a2[1] = dementor_2[1] - 10
+                        curse3_a2[0] = dementor_2[0]
+                        curse3_a2[3] = True
+        ###### loosing life ##########################
+        if curse_a1[3]:
+            d1 = math.sqrt((curse_a1[0] - wizard_x) ** 2 + (curse_a1[1] - wizard_y) ** 2)
+            if d1 <= 28:
+                curse_a1[3] = False
+                tem_house_color = house_color
+                house_color = [0, 0.5, 0.5]  # Change color to dark blue
+
+                if lives > 0:
+                    print("Got cursed")
+                    lives -= 1
+                if lives == 0:
+                    gameStart = False
+                    gameover = True
+                    print("...............................................")
+                    print("Game Over")
+                    wizard_speed = 0
+                    print("Score:", score)
+                print("Lives:", lives)
+        if curse_a2[3]:
+            d1 = math.sqrt((curse_a2[0] - wizard_x) ** 2 + (curse_a2[1] - wizard_y) ** 2)
+            if d1 <= 28:
+                curse_a2[3] = False
+                tem_house_color = house_color
+                house_color = [0, 0.5, 0.5]
+                if lives > 0:
+                    print("Got cursed")
+                    lives -= 1
+                if lives == 0:
+                    gameStart = False
+                    gameover = True
+                    print('...................................................')
+                    print("Game Over")
+                    wizard_speed = 0
+                    print("Score:", score)
+                print("Lives:", lives)
+        if curse2_a1[3]:
+            d1 = math.sqrt((curse2_a1[0] - wizard_x) ** 2 + (curse2_a1[1] - wizard_y) ** 2)
+            if d1 <= 28:
+                curse2_a1[3] = False
+                tem_house_color = house_color
+                house_color = [1, 0, 0.5]
+                if lives > 0:
+                    print("Got cursed")
+                    lives -= 1
+                if lives == 0:
+                    gameStart = False
+                    gameover = True
+                    print('...................................................')
+                    print("Game Over")
+                    wizard_speed = 0
+                    print("Score:", score)
+                print("Lives:", lives)
+        if curse2_a2[3]:
+            d1 = math.sqrt((curse2_a2[0] - wizard_x) ** 2 + (curse2_a2[1] - wizard_y) ** 2)
+            if d1 <= 28:
+                curse2_a2[3] = False
+                tem_house_color = house_color
+                house_color = [1, 0, 0.5]
+                if lives > 0:
+                    print("Got cursed")
+                    lives -= 1
+                if lives == 0:
+                    gameStart = False
+                    gameover = True
+                    print('...................................................')
+                    print("Game Over")
+                    wizard_speed = 0
+                    print("Score:", score)
+                print("Lives:", lives)
+        if curse3_a1[3]:
+            d1 = math.sqrt((curse3_a1[0] - wizard_x) ** 2 + (curse3_a1[1] - wizard_y) ** 2)
+            if d1 <= 28:
+                curse3_a1[3] = False
+                tem_house_color = house_color
+                house_color = [1,1,1]
+                if lives > 0:
+                    print("Got cursed")
+                    lives -= 1
+                if lives == 0:
+                    gameStart = False
+                    gameover = True
+                    print('...................................................')
+                    print("Game Over")
+                    wizard_speed = 0
+                    print("Score:", score)
+                print("Lives:", lives)
+        if curse3_a2[3]:
+            d1 = math.sqrt((curse3_a2[0] - wizard_x) ** 2 + (curse3_a2[1] - wizard_y) ** 2)
+            if d1 <= 28:
+                curse3_a2[3] = False
+                tem_house_color = house_color
+                house_color = [1, 1,1]
+                if lives > 0:
+                    print("Got cursed")
+                    lives -= 1
+                if lives == 0:
+                    gameStart = False
+                    gameover = True
+                    print('...................................................')
+                    print("Game Over")
+                    wizard_speed = 0
+                    print("Score:", score)
+                print("Lives:", lives)
+        ############# bullet_1 looping ##################################################################
+        for i in range(len(spell_1)):
+            if spell_1[-1][2]:
+                if gamestartStatus == "Game Started" or gamestartStatus == "Game Restarted":
+                    if isWin == False:
+                        dementor_1[4] = True
+                        dementor_2[4] = True
+                        curse_a1[3] = True
+                        curse_a2[3] = True
+                    gamestartStatus = "Game Running"
+            if spell_1[i][2]:
+                if isWin:
+                    if spell_1[i][1] != wizard_y:
+                        spell_1[i][1] = (spell_1[i][1] + spell_speed)
+                    else:
+                        spell_1[i][1] = wizard_y
+                else:
+                    spell_1[i][1] = (spell_1[i][1] + spell_speed)
+                if spell_1[i][1] > wizard_y + 50 and spell_1[i][1] < wizard_y + 70:
+                    if i < len(spell_1) - 1:
+                        spell_1[i + 1][2] = True
+                if spell_1[i][1] > 650:
+                    spell_1[i][1] = wizard_y
+                    spell_1[i][0] = wizard_x
+                    spell_1[i][3] = True
+            ###### While wizard spell clashing with alien #############
+            if spell_1[i][3]:
+                d1 = math.sqrt((spell_1[i][0] - dementor_1[0]) ** 2 + (spell_1[i][1] - dementor_1[1]) ** 2)
+                if d1 < 25:
+                    if dementor_1[4]:
+                        spell_1[i][3] = False
+                        dementor_1[5] = [1, 0, 0]
+                        dementor_1[3] -= 1
+                        score += 1
+                d2 = math.sqrt((spell_1[i][0] - dementor_2[0]) ** 2 + (spell_1[i][1] - dementor_2[1]) ** 2)
+                if d2 < 25:
+                    if dementor_2[4]:
+                        spell_1[i][3] = False
+                        dementor_2[5] = [1, 0, 0]
+                        dementor_2[3] -= 1
+                        score += 1
+        ############# bullet_2 looping ##################################################################
+        for i in range(len(spell_2)):
+            if spell_2[i][2]:
+                if isWin:
+                    if spell_2[i][1] != wizard_y:
+                        spell_2[i][1] = (spell_2[i][1] + spell_speed)
+                        if house_color == [0, 1, 1]:
+                            spell_2[i][0] = (spell_2[i][0] - 0.5)
+                        if house_color == [1, 0, 1]:
+                            spell_2[i][0] = (spell_2[i][0] - 1)
+                        if house_color == [0, 1, 0]:
+                            spell_2[i][0] = (spell_2[i][0] - 2)
+                        if spell_2[i][1] > wizard_y + 50 and spell_2[i][1] < wizard_y + 70:
+                            if i < len(spell_2) - 1:
+                                spell_2[i + 1][2] = True
+                        if spell_2[i][1] > 650:
+                            spell_2[i][1] = wizard_y
+                            spell_2[i][0] = wizard_x - 10
+                            spell_2[i][3] = True
+                    else:
+                        spell_2[i][1] = wizard_y
+                else:
+                    spell_2[i][1] = (spell_2[i][1] + spell_speed)
+                    if house_color == [0, 1, 1]:
+                        spell_2[i][0] = (spell_2[i][0] - 0.5)
+                    if house_color == [1, 0, 1]:
+                        spell_2[i][0] = (spell_2[i][0] - 1)
+                    if house_color == [0, 1, 0]:
+                        spell_2[i][0] = (spell_2[i][0] - 2)
+                    if spell_2[i][1] > wizard_y + 50 and spell_2[i][1] < wizard_y + 70:
+                        if i < len(spell_2) - 1:
+                            spell_2[i + 1][2] = True
+                    if spell_2[i][1] > 650:
+                        spell_2[i][1] = wizard_y
+                        spell_2[i][0] = wizard_x - 10
+                        spell_2[i][3] = True
+            ###### While clashing with dementor #############
+            if spell_2[i][3] and spell_num > 2:
+                d1 = math.sqrt((spell_2[i][0] - dementor_1[0]) ** 2 + (spell_2[i][1] - dementor_1[1]) ** 2)
+                if d1 < 25:
+                    if dementor_1[4]:
+                        spell_2[i][3] = False
+                        dementor_1[5] = [1, 0, 0]
+                        dementor_1[3] -= 1
+                        score += 1
+                d2 = math.sqrt((spell_2[i][0] - dementor_2[0]) ** 2 + (spell_2[i][1] - dementor_2[1]) ** 2)
+                if d2 < 25:
+                    if dementor_2[4]:
+                        spell_2[i][3] = False
+                        dementor_2[5] = [1, 0, 0]
+                        dementor_2[3] -= 1
+                        score += 1
+        ############# bullet_3 looping ##################################################################
+        for i in range(len(spell_3)):
+            if spell_3[i][2]:
+                if isWin:
+                    if spell_3[i][1] != wizard_y:
+                        spell_3[i][1] = (spell_3[i][1] + spell_speed)
+                        if house_color == [0, 1, 1]:
+                            spell_3[i][0] = (spell_3[i][0] + 0.5)
+                        if house_color == [1, 0, 1]:
+                            spell_3[i][0] = (spell_3[i][0] + 1)
+                        if house_color == [0, 1, 0]:
+                            spell_3[i][0] = (spell_3[i][0] + 2)
+                        if spell_3[i][1] > wizard_y + 50 and spell_3[i][1] < wizard_y + 70:
+                            if i < len(spell_3) - 1:
+                                spell_3[i + 1][2] = True
+                        if spell_3[i][1] > 650:
+                            spell_3[i][1] = wizard_y
+                            spell_3[i][0] = wizard_x + 10
+                            spell_3[i][3] = True
+                    else:
+                        spell_3[i][1] = wizard_y
+                else:
+                    spell_3[i][1] = (spell_3[i][1] + spell_speed)
+                    if house_color == [0, 1, 1]:
+                        spell_3[i][0] = (spell_3[i][0] + 0.5)
+                    if house_color == [1, 0, 1]:
+                        spell_3[i][0] = (spell_3[i][0] + 1)
+                    if house_color == [0, 1, 0]:
+                        spell_3[i][0] = (spell_3[i][0] + 2)
+                    if spell_3[i][1] > wizard_y + 50 and spell_3[i][1] < wizard_y + 70:
+                        if i < len(spell_3) - 1:
+                            spell_3[i + 1][2] = True
+                    if spell_3[i][1] > 650:
+                        spell_3[i][1] = wizard_y
+                        spell_3[i][0] = wizard_x + 10
+                        spell_3[i][3] = True
+            ###### While clashing with dementor #############
+            if spell_3[i][3] and spell_num > 2:
+                d1 = math.sqrt((spell_3[i][0] - dementor_1[0]) ** 2 + (spell_3[i][1] - dementor_1[1]) ** 2)
+                if d1 < 25:
+                    if dementor_1[4]:
+                        spell_3[i][3] = False
+                        dementor_1[5] = [1, 0, 0]
+                        dementor_1[3] -= 1
+                        score += 1
+                d2 = math.sqrt((spell_3[i][0] - dementor_2[0]) ** 2 + (spell_3[i][1] - dementor_2[1]) ** 2)
+                if d2 < 25:
+                    if dementor_2[4]:
+                        spell_3[i][3] = False
+                        dementor_2[5] = [1, 0, 0]
+                        dementor_2[3] -= 1
+                        score += 1
+
+#perfectly working
+def mouseListener(button, state, x, y):  # /#/x, y is the x-y of the screen (2D)
+    global isPlay, exitGame, gameStart, house_color, dementor_1, dementor_2, curse2_a1, curse3_a1, curse3_a2, curse2_a2, isWin, starting_wizard_y, spell_1, wizard_visibility, tem_house_color, spell_2, spell_3, bullet_4, bullet_5, spell_num, curse_a1, curse_a2, score, speed, wizard_speed, spell_r, shootable, spell_speed, wizard_y, wizard_x, lives, gameover, gamestartStatus
+
+    if button == GLUT_LEFT_BUTTON:
+        if state == GLUT_DOWN:  # Check button state to avoid double triggering
+            c_X, c_y = convert_coordinate(x, y)  # Convert screen coordinates to game coordinates
+            print(f"Click detected at: c_X={c_X}, c_y={c_y}. Please click in the right place")  # Debugging
+
+            ################ Theme Change ############
+            if 665 <= c_y <= 695:  # If the click is within the color selection area
+                if 235 <= c_X <= 265:  # Red button range
+                    house_color = [1, 0, 0]  # Red
+                    print("You chose house GRIFFINDOR!!")
+                    print(f"shooter_color updated to: {house_color}")
+                elif 285 <= c_X <= 315:  # Green button range
+                    house_color = [0, 1, 0]  # Green
+                    print("You chose house SLYTHERIN!")
+                elif 335 <= c_X <= 365:  # Yellow button range
+                    house_color = [1, 1, 0]  # Yellow
+                    print("You chose house HUFFLEPUFF!")
+                elif 385 <= c_X <= 415:  # Blue button range
+                    house_color = [0, 0, 1]  # Blue
+                    print("You chose house RAVENCLAW!")
+
+            ################ Pause and Play ############
+            if 130 <= c_X <= 170 and 680 <= c_y <= 720:
+                if not gameover and shootable:
+                    isPlay = not isPlay
+                    wizard_speed = 10 if isPlay else 0
+                    if not gameStart:
+                        print("..........................................................")
+                        print(gamestartStatus)
+                        print("Lives:", lives)
+                        print("Score:", score)
+                    gameStart = True
+
+            ################ Exit Game ################
+            if 430 <= c_X <= 470 and 680 <= c_y <= 720:
+                print(".............................................................")
+                print("Goodbye! Total Score:", score)
+                glutDestroyWindow(True)
+
+            ################ Restart Game ################
+            if 30 <= c_X <= 70 and 680 <= c_y <= 720:
+                exitGame = True
+                isPlay = False
+                if gameStart:
+                    if not isWin:
+                        print(".............................................................")
+                        print("Game Ended. Score:", score)
+                        print("Lives:", lives)
+                wizard_x = 250
+                house_color = [1, 0, 0]  # Default color for shooter
+                tem_house_color = house_color
+                wizard_y = 45
+                speed = 3
+                wizard_speed = 15
+                isWin = False
+                starting_wizard_y = -30
+                wizard_visibility = False
+                spell_1 = [[wizard_x, wizard_y, True, True]] + [[wizard_x, wizard_y, False, True]] * 12
+                # Reset other necessary variables here as per the game logic
+
+    glutPostRedisplay()  # Force a redraw to reflect changes
+
+# color of house
+# def mouseListener(button, state, x, y):  # /#/x, y is the x-y of the screen (2D)
+#     global isPlay, exitGame, gameStart, shooter_color, alien_1, alien_2, bullet2_a1, bullet3_a1, bullet3_a2, bullet2_a2, isWin, starting_shooter_y, bullet_1, shooter_visibility, tem_shooter_color, bullet_2, bullet_3, bullet_4, bullet_5, bullet_num, bullet_a1, bullet_a2, score, speed, shooter_speed, bullet_r, shootable, bullet_speed, shooter_y, shooter_x, lives, gameover, gamestartStatus
+#     if button == GLUT_LEFT_BUTTON:
+#         if state == GLUT_DOWN:  # // 2 times?? in ONE click? -- solution is checking DOWN or UP
+#             c_X, c_y = convert_coordinate(x, y)
+#
+#             ################ Theme Change ############
+#             if c_y >= 665 and c_y <= 695:  # If the click is within the color selection area
+#                 if c_X >= 235 and c_X <= 265:  # Coordinates for Red (new option, as a square)
+#                     shooter_color = [1, 0, 0]  # Red
+#                     print("You chose house GRIFFINDOR!!")
+#                 if c_X >= 285 and c_X <= 315:  # Coordinates for Green (square shape)
+#                     shooter_color = [0, 1, 0]  # Green
+#                     print("You chose house SYYTHERIN")
+#                 if c_X >= 335 and c_X <= 365:  # Coordinates for Yellow (square shape)
+#                     shooter_color = [1, 1, 0]  # Yellow
+#                     print("You chose house HUFFELPUFF!")
+#                 if c_X >= 385 and c_X <= 415:  # Coordinates for Blue (square shape)
+#                     shooter_color = [0, 0, 1]  # Blue
+#                     print("You chose house RAVENCLAW!")
+#
+#             ################ Theme Change ############
+#             ##### Pause and Play ##################
+#             if c_X >= 130 and c_X <= 170:
+#                 if c_y >= 680 and c_y <= 720:
+#                     if gameover == False and shootable:
+#                         if isPlay:
+#                             isPlay = False
+#                             shooter_speed = 0
+#                         else:
+#                             isPlay = True
+#                             shooter_speed = 10
+#                             if gameStart == False:
+#                                 print("..........................................................")
+#                                 print(gamestartStatus)
+#                                 print("Lives:", lives)
+#                                 print("Score:", score)
+#                             gameStart = True
+#             ##### Exit #############
+#             if c_X >= 430 and c_X <= 470:
+#                 if c_y >= 680 and c_y <= 720:
+#                     print(".............................................................")
+#                     print("Good bye! Total Score:", score)
+#                     glutDestroyWindow(True)
+#
+#             ##### Restart #############
+#             if c_X >= 30 and c_X <= 70:
+#                 if c_y >= 680 and c_y <= 720:
+#                     exitGame = True
+#                     isPlay = False
+#                     if gameStart:
+#                         if isWin == False:
+#                             print(".............................................................")
+#                             print("Game Ended. Score:", score)
+#                             print("Lives:", lives)
+#                     shooter_x = 250
+#                     shooter_color = [1, 0, 0]  # Default color for shooter
+#                     tem_shooter_color = shooter_color
+#                     shooter_y = 45
+#                     speed = 3
+#                     shooter_speed = 15
+#                     isWin = False
+#                     starting_shooter_y = -30
+#                     shooter_visibility = False
+#                     bullet_1 = [[shooter_x, shooter_y, True, True], [shooter_x, shooter_y, False, True],
+#                                 [shooter_x, shooter_y, False, True], [shooter_x, shooter_y, False, True],
+#                                 [shooter_x, shooter_y, False, True], [shooter_x, shooter_y, False, True],
+#                                 [shooter_x, shooter_y, False, True], [shooter_x, shooter_y, False, True],
+#                                 [shooter_x, shooter_y, False, True], [shooter_x, shooter_y, False, True],
+#                                 [shooter_x, shooter_y, False, True], [shooter_x, shooter_y, False, True],
+#                                 [shooter_x, shooter_y, False, True]]
+#                     # Reset other necessary variables here as per the game logic
+#
+#     glutPostRedisplay()
+
+def keyboardListener(key, x, y):
+    global wizard_x, wizard_speed, gameStart, dementor_1, dementor_2, isWin, isPlay, shootable, wizard_y, spell_1, gameover, gamestartStatus
+    if isPlay:
+        if spell_1[-1][2] and isWin == False:
+            if key == b'a':
+                if wizard_x > 30:
+                    wizard_x -= wizard_speed
+            if key == b'd':
+                if wizard_x < 470:
+                    wizard_x += wizard_speed
+        
+
+    if key == b' ' and not gameover and shootable:
+            isPlay = not isPlay  # Toggle game state
+            shooter_speed = 6 if isPlay else 0
+            if not gameStart:
+                print(gamestartStatus)
+                print("Lives:", lives)
+                gameStart = True
+
+
+def specialKeyListener1(key, x, y):
+     global wizard_x, wizard_speed, gameStart, isPlay, shootable, wizard_y, spell_1
+     if isPlay and not isWin and spell_1[-1][2]:
+            if key == GLUT_KEY_LEFT and wizard_x > 30:  # Move left
+                wizard_x -= wizard_speed
+            elif key == GLUT_KEY_RIGHT and wizard_x < 470:  # Move right
+                wizard_x += wizard_speed
+
+
+
+def iterate():
+    glViewport(0, 0, 1000, 1000)
+    glMatrixMode(GL_PROJECTION)
+    glLoadIdentity()
+    glOrtho(0.0, 1000, 0.0, 1000, 0.0, 1.0)
+    glMatrixMode(GL_MODELVIEW)
+    glLoadIdentity()
+
+
+def show_screen():  # Gl Display Screen Function
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+    glLoadIdentity()
+    iterate()
+    if wizard_visibility:
+        wizard()
+        spell1()
+        if spell_num > 2:
+            spell2()
+            spell3()
+
+    else:
+        starting_wizard()
+    restart_img()
+    line()
+    themes()
+    heart()
+    curseOfdementor()
+    dementor()
+    dementor2()
+
+    global isPlay
+    if isPlay:
+        pause_img()
+    else:
+        play_img()
+    exit_img()
+    glutSwapBuffers()
+
+
+# GL Driver Codes
+glutInit()
+glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGB)
+glutInitWindowSize(500, 750)
+glutInitWindowPosition(400, 0)
+wind = glutCreateWindow(b"Wizard's Duel")
+glutDisplayFunc(show_screen)
+glutIdleFunc(show_screen)
+glutSpecialFunc(specialKeyListener1)
+glutIdleFunc(animate)
+glutKeyboardFunc(keyboardListener)
+glutMouseFunc(mouseListener)
+glutMainLoop()
