@@ -241,18 +241,34 @@ def wizard():
     draw_Line(wizard_x - 30, wizard_y - 10, wizard_x + 45, wizard_y - 2, color) #right hand upper side  (showing that it giving curse)
 
 
-def draw_square(size, center_x, center_y, color):
+def draw_square(count, x, y, color):
 
-    top_left_x = center_x - size
-    top_left_y = center_y + size
-    bottom_right_x = center_x + size
-    bottom_right_y = center_y - size
+    size = 20
+    half_size = size / 2
 
-    # Draw the square's edges
-    draw_Line(top_left_x, top_left_y, bottom_right_x, top_left_y, color)  # Top
-    draw_Line(bottom_right_x, top_left_y, bottom_right_x, bottom_right_y, color)  # Right
-    draw_Line(bottom_right_x, bottom_right_y, top_left_x, bottom_right_y, color)  # Bottom
-    draw_Line(top_left_x, bottom_right_y, top_left_x, top_left_y, color)  # Left
+    # Set the color for the square
+    glColor3fv(color)
+
+    # Draw the four edges of the square using GL_POINTS
+    glBegin(GL_POINTS)
+
+    # Bottom edge
+    for i in range(int(x - half_size), int(x + half_size) + 1):
+        glVertex2f(i, y - half_size)
+
+    # Top edge
+    for i in range(int(x - half_size), int(x + half_size) + 1):
+        glVertex2f(i, y + half_size)
+
+    # Left edge
+    for j in range(int(y - half_size), int(y + half_size) + 1):
+        glVertex2f(x - half_size, j)
+
+    # Right edge
+    for j in range(int(y - half_size), int(y + half_size) + 1):
+        glVertex2f(x + half_size, j)
+
+    glEnd()
 
 
 def starting_wizard():
