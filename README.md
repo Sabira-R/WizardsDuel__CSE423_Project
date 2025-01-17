@@ -1,6 +1,6 @@
 # Wizard's Duel Game
 
-Wizard's Duel is a 2D action game where players control a wizard battling against flying dementors. Use spells to defeat the enemies, dodge their curses, and aim for victory. The game is built using Python with the PyOpenGL library for 2D graphics.
+[Wizard's Duel](https://github.com/Sabira-R/WizardsDuel__CSE423_Project/blob/main/Final%20one) is a 2D action game where players control a wizard battling against flying dementors. Use spells to defeat the enemies, dodge their curses, and aim for victory. The game is built using Python with the PyOpenGL library for 2D graphics.
 
 ---
 
