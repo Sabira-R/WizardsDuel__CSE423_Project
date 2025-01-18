@@ -35,10 +35,7 @@
 ## How to Play
 
 1. **Setup**: 
-   - Run the game using the command:
-     ```bash
-     python <filename>.py
-     ```
+   - Run the game using the run command of pycharm
    - Ensure your system meets the requirements listed below.
 
 2. **Gameplay**:
